@@ -1,0 +1,17 @@
+* text=auto
+*.sh text eol=lf
+Procfile text eol=lf
+render.yaml text eol=lf
+runtime.txt text eol=lf
+.python-version text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.pdf binary
+*.zip binary

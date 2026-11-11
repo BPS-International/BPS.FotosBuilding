@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BPS.FotosBuilding</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="brand">BPS.FotosBuilding</div>
+      <div class="project-select-wrap" title="Projektordner mit Fotos wählen">
+        <select id="projectSelect"></select>
+        <button type="button" id="btnAddProject" class="btn-add-project" title="Neues Projekt über Fotoordner hinzufügen (nur Bearbeitung)">+</button>
+      </div>
+    </div>
+    <div class="top-controls">
+      <label class="date-select-wrap">
+        Datum
+        <select id="dateSelect"></select>
+      </label>
+      <label class="plan-select-wrap" title="PDF-Plan für aktuelles Datum und Geschoss wählen">
+        PDF-Plan
+        <select id="planSelect"></select>
+      </label>
+      <button type="button" id="btnReplacePlan" title="Neue PDF-Datei für das aktuelle Geschoss hochladen">PDF hochladen</button>
+      <input type="file" id="planFileInput" accept="application/pdf,.pdf" hidden />
+      <button type="button" id="btnSave" title="seeds.json speichern">Speichern</button>
+      <button type="button" id="btnClearSeed" title="Markierung des ausgewählten Fotos entfernen">Foto zurücksetzen</button>
+      <button type="button" id="btnCancelPlace" class="hidden" title="Aktuelle Markierung abbrechen">Markierung abbrechen</button>
+      <button type="button" id="btnGpsCalib" title="3 GPS-Fotos als Referenzpunkte wählen und markieren">Lage kalibrieren</button>
+      <button type="button" id="btnGpsAuto" title="Übrige Fotos per GPS anhand der Kalibrierung platzieren">Automatisch platzieren</button>
+      <label class="top-setting" title="Temporär: Durchmesser des 2-m-Kreises auf dem Plan in Pixeln">
+        2&nbsp;m Ø
+        <input type="number" id="groupDiameterPx" value="120" min="20" max="2000" step="10" />
+        px
+      </label>
+      <label class="top-setting" title="Sanfter Fotoübergang in der Vorschau beim Datumswechsel des Punkts">
+        Übergang
+        <input type="number" id="previewFadeMs" value="1100" min="0" max="5000" step="50" />
+        ms
+      </label>
+    </div>
+    <div class="build-stamp" id="buildStamp" title="Build stamp">00000000-000000</div>
+  </header>
+
+  <main class="layout" id="layout">
+    <aside class="sidebar">
+      <nav class="floor-tabs" id="floorTabs" aria-label="Geschosse"></nav>
+      <div class="sidebar-head">
+        <span id="photoCount">0</span> Fotos
+        <span class="muted" id="placedCount"></span>
+      </div>
+      <div id="photoList" class="photo-list"></div>
+    </aside>
+
+    <section class="stage-wrap">
+      <div class="date-scale-bar">
+        <div class="date-scale" id="dateScale">
+          <div class="date-scale-track" id="dateScaleTrack"></div>
+          <button type="button" class="date-scale-thumb" id="dateScaleThumb" aria-label="Aufnahmedatum"></button>
+        </div>
+        <button type="button" id="btnRefreshPhotos" class="btn-refresh-photos" title="Gemeinsamen Fotoordner scannen und neue Fotos/Daten laden" aria-label="Fotos aktualisieren">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"
+              d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/>
+            <path fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"
+              d="M21 3v5h-5"/>
+          </svg>
+        </button>
+      </div>
+      <div id="stage" class="stage">
+        <canvas id="planCanvas"></canvas>
+        <svg id="overlay" class="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div id="planEmpty" class="plan-empty hidden">Kein PDF für dieses Datum/Geschoss. Datum wählen, dann Plan wählen oder „PDF hochladen“.</div>
+      </div>
+      <div class="zoom-bar">
+        <button type="button" id="btnRotateLeft" title="Plan 90° gegen den Uhrzeigersinn drehen">⟲</button>
+        <button type="button" id="btnRotateRight" title="Plan 90° im Uhrzeigersinn drehen">⟳</button>
+        <button type="button" id="btnZoomOut">−</button>
+        <button type="button" id="btnZoomFit">Einpassen</button>
+        <button type="button" id="btnZoomIn">+</button>
+      </div>
+    </section>
+
+    <div class="splitter" id="previewSplitter" title="Ziehen, um die Vorschaubreite zu ändern"></div>
+
+    <aside class="preview" id="previewPanel">
+      <div class="date-scale-bar group-scale-bar hidden" id="groupScaleBar">
+        <div class="date-scale group-scale" id="groupScale">
+          <div class="date-scale-track" id="groupScaleTrack"></div>
+          <button type="button" class="date-scale-thumb" id="groupScaleThumb" aria-label="Aufnahmedatum dieses Punkts"></button>
+        </div>
+      </div>
+      <div class="preview-body">
+      <div class="preview-photo-wrap">
+        <img id="previewImg" class="preview-layer is-front" alt="preview" />
+        <img id="previewImgAlt" class="preview-layer" alt="" aria-hidden="true" />
+      </div>
+      <div class="preview-actions">
+        <a id="openOriginal" href="#" target="_blank" rel="noopener">Original öffnen</a>
+      </div>
+      <div class="photo-meta-grid" id="photoMetaGrid">
+        <div class="meta-col" id="exifCam"></div>
+        <div class="meta-col" id="exifGps"></div>
+        <div class="meta-col" id="seedInfo"></div>
+      </div>
+      </div>
+    </aside>
+  </main>
+
+  <div id="lightbox" class="lightbox hidden" role="dialog">
+    <button type="button" class="lightbox-close" id="lightboxClose">×</button>
+    <div class="lightbox-viewport">
+      <img id="lightboxImg" alt="full" />
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

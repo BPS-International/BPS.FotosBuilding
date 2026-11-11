@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.venv/
+data/remote-photos.json
+converted/
+.DS_Store
+

@@ -1,0 +1,1 @@
+Ensure this folder is writable by the Flask application user so JSON state can be saved.

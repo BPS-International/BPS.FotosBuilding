@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: shapespark-multiplayer
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120 server:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: BPS_PUBLIC_VIEW
+        value: "1"
+      - key: BPS_WRITE_TOKEN
+        generateValue: true

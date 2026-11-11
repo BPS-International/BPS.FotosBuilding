@@ -1,0 +1,86 @@
+{
+    "updatedAt":  "2026-08-10T15:55:42",
+    "levelId":  "UG",
+    "source":  "colmap",
+    "align":  {
+                  "mode":  "xy",
+                  "rmse":  439.853,
+                  "scale":  219.174618,
+                  "pairs":  12,
+                  "workspace":  "Z:\\REVIT_PROJECT\\_EXTENSIONS\\_=BPS=_\\Cursor\\BPS.FotosBuilding\\_TR\\sfm\\UG_2026-08-10"
+              },
+    "cameras":  [
+                    {
+                        "id":  "photo_15_2026-08-10",
+                        "file":  "photo_15_2026-08-10_12-31-55.jpg",
+                        "floorId":  "UG",
+                        "x":  779.858,
+                        "y":  1120.743,
+                        "yawDeg":  119.01,
+                        "coneLen":  100,
+                        "source":  "colmap",
+                        "status":  "auto",
+                        "confidence":  0.102
+                    },
+                    {
+                        "id":  "photo_10_2026-08-10",
+                        "file":  "photo_10_2026-08-10_12-31-55.jpg",
+                        "floorId":  "UG",
+                        "x":  773.792,
+                        "y":  1096.69,
+                        "yawDeg":  232.37,
+                        "coneLen":  100,
+                        "source":  "colmap",
+                        "status":  "auto",
+                        "confidence":  0.102
+                    },
+                    {
+                        "id":  "photo_22_2026-08-10",
+                        "file":  "photo_22_2026-08-10_12-31-55.jpg",
+                        "floorId":  "UG",
+                        "x":  343.988,
+                        "y":  5.848,
+                        "yawDeg":  70.45,
+                        "coneLen":  100,
+                        "source":  "colmap",
+                        "status":  "auto",
+                        "confidence":  0.102
+                    },
+                    {
+                        "id":  "photo_8_2026-08-10",
+                        "file":  "photo_8_2026-08-10_12-31-55.jpg",
+                        "floorId":  "UG",
+                        "x":  560.884,
+                        "y":  563.911,
+                        "yawDeg":  231.31,
+                        "coneLen":  100,
+                        "source":  "colmap",
+                        "status":  "auto",
+                        "confidence":  0.102
+                    },
+                    {
+                        "id":  "photo_12_2026-08-10",
+                        "file":  "photo_12_2026-08-10_12-31-55.jpg",
+                        "floorId":  "UG",
+                        "x":  773.132,
+                        "y":  933.981,
+                        "yawDeg":  200.38,
+                        "coneLen":  100,
+                        "source":  "colmap",
+                        "status":  "auto",
+                        "confidence":  0.102
+                    },
+                    {
+                        "id":  "photo_1_2026-08-10",
+                        "file":  "photo_1_2026-08-10_12-31-55.jpg",
+                        "floorId":  "UG",
+                        "x":  312.788,
+                        "y":  443.158,
+                        "yawDeg":  171.39,
+                        "coneLen":  100,
+                        "source":  "colmap",
+                        "status":  "auto",
+                        "confidence":  0.102
+                    }
+                ]
+}
