@@ -1351,10 +1351,27 @@
   }
 
   async function loadSwitchedProject(summary, photosRoot) {
-    const index = await loadJson(`/data/photos.json?t=${Date.now()}`, { photos: [], dates: [] });
+    const bust = Date.now();
+    const floorsDoc = await loadJson(
+      WEB ? `/api/floors?t=${bust}` : `/data/floors.json?t=${bust}`,
+      null
+    );
+    if (floorsDoc && Array.isArray(floorsDoc.floors)) {
+      state.floors = floorsDoc.floors.map((f) => normalizeFloor(f));
+      state.activeFloorId = floorsDoc.activeFloorId || state.floors[0]?.id || 'UG';
+    }
+    const seedsDoc = await loadJson(
+      WEB ? `/api/seeds?t=${bust}` : `/data/seeds.json?t=${bust}`,
+      { seeds: [], byFloor: {} }
+    );
+    loadSeedsDoc(seedsDoc);
+    const index = await loadJson(`/data/photos.json?t=${bust}`, { photos: [], dates: [] });
     state.selectedId = null;
-    applyPhotosIndex(index, { keepDate: false });
     fillProjectSelect(summary.projects || [], summary.photosRoot || photosRoot);
+    applyPhotosIndex(index, { keepDate: false });
+    renderFloorTabs();
+    await renderPlanSelect();
+    await renderPlanForFloor({ bustCache: true, force: true });
     const label = summary.label || projectLabelFromPath(summary.photosRoot || photosRoot);
     const n = summary.count != null ? summary.count : state.photos.length;
     setStatusHint(`Projekt ${label}: ${n} Fotos`);

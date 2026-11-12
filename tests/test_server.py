@@ -105,6 +105,33 @@ class ServerApiTests(unittest.TestCase):
         with self.assertRaises(server.SourceError):
             server._validate_public_url("https://example.com:invalid/photos.json")
 
+    def test_activate_bundled_copies_seeds_and_floors(self):
+        projects = Path(self.tempdir.name) / "projects"
+        bundle = projects / "100_BPS.OSZ"
+        (bundle / "data").mkdir(parents=True)
+        (bundle / "data" / "photos.json").write_text(
+            json.dumps({"photos": [{"id": "osz-1"}], "dates": [], "count": 1, "buildStamp": "x"}),
+            encoding="utf-8",
+        )
+        (bundle / "data" / "seeds.json").write_text(
+            json.dumps({"byFloor": {"UG": [{"id": "osz-1", "x": 1, "y": 2}]}}),
+            encoding="utf-8",
+        )
+        (bundle / "data" / "floors.json").write_text(
+            json.dumps({"activeFloorId": "UG", "floors": [{"id": "UG", "planFile": "site.pdf"}]}),
+            encoding="utf-8",
+        )
+        item = {"id": "100_BPS.OSZ", "photosRoot": "100_BPS.OSZ", "label": "100_BPS.OSZ"}
+        meta = Path(self.tempdir.name) / "meta.json"
+        floors_path = Path(self.tempdir.name) / "floors.json"
+        with patch.multiple(server, META=meta, FLOORS=floors_path):
+            payload = server._activate_bundled(item)
+        self.assertTrue(payload["ok"])
+        seeds = json.loads((Path(self.tempdir.name) / "seeds.json").read_text(encoding="utf-8"))
+        floors = json.loads(floors_path.read_text(encoding="utf-8"))
+        self.assertEqual(seeds["byFloor"]["UG"][0]["id"], "osz-1")
+        self.assertEqual(floors["floors"][0]["planFile"], "site.pdf")
+
     def test_manifest_relative_urls_become_absolute(self):
         manifest = server._normalise_manifest(
             {"photos": [{"id": "one", "thumb": "thumb/one.jpg", "originalUrl": "original/one.jpg"}]},

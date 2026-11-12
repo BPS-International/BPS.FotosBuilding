@@ -22,7 +22,7 @@ JOBS = [
                 {
                     "id": "UG",
                     "label": "UG",
-                    "planFile": "100_BPS.OSZ_ARC_UG_Fund.pdf",
+                    "planFile": "2026-10-21_100_Freiflaechenplan.pdf",
                     "planRotation": 90,
                 },
                 {"id": "EG", "label": "EG", "planFile": None, "planRotation": 0},
@@ -31,6 +31,12 @@ JOBS = [
             ],
         },
         "seeds": ROOT / "data" / "seeds-osz.json",
+        "extraPlan": {
+            "src": ONEDRIVE
+            / r"100_BPS.OSZ\01_ARC\00_PUBLISH\2026-10-21_новые границы и парковка\2026-10-21_100_Freiflächenplan.pdf",
+            "floor": "UG",
+            "name": "2026-10-21_100_Freiflaechenplan.pdf",
+        },
     },
     {
         "id": "101_UH9.UH9",
@@ -88,6 +94,14 @@ def pack_job(job: dict) -> None:
             dest / "plan" / "UG",
             exclude="OSZ" if marker == "UH9" else None,
         )
+    extra_plan = job.get("extraPlan")
+    if extra_plan:
+        src = Path(extra_plan["src"])
+        if src.is_file():
+            target = dest / "plan" / extra_plan.get("floor", "UG") / extra_plan["name"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target)
+            n_plan += 1
     index = rebuild_photos_index(photos_root, dest)
     (dest / "data" / "floors.json").write_text(
         json.dumps(job["floors"], ensure_ascii=False, indent=2) + "\n",

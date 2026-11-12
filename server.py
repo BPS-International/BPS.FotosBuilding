@@ -80,6 +80,18 @@ def _write_json(path: Path, payload: Any) -> None:
         temporary.replace(path)
 
 
+def _sync_active_bundle_data(name: str) -> None:
+    bundle = _active_bundle_dir()
+    if bundle is None:
+        return
+    src = DATA / name
+    if not src.is_file():
+        return
+    dest = bundle / "data" / name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(src.read_bytes())
+
+
 def _is_plan_date(value: str) -> bool:
     import re
 
@@ -742,6 +754,7 @@ def select_plan() -> Response | tuple[Response, int]:
     floors_doc["floors"] = floors
     floors_doc["activeFloorId"] = floor_id
     _write_json(FLOORS, floors_doc)
+    _sync_active_bundle_data("floors.json")
     return jsonify(
         ok=True,
         floorId=floor_id,
@@ -793,6 +806,7 @@ def save_floor_rotation() -> Response | tuple[Response, int]:
     if not found:
         return jsonify(ok=False, error="floor not found"), 404
     _write_json(FLOORS, floors_doc)
+    _sync_active_bundle_data("floors.json")
     return jsonify(ok=True, floorId=floor_id, planRotation=rotation)
 
 
@@ -869,6 +883,7 @@ def upload_plan() -> Response | tuple[Response, int]:
         floors.append(floor)
     floors_doc["floors"] = floors
     _write_json(FLOORS, floors_doc)
+    _sync_active_bundle_data("floors.json")
     return jsonify(
         ok=True,
         floorId=floor_id,
@@ -901,6 +916,7 @@ def save_seeds() -> Response | tuple[Response, int]:
         "gpsCalib": gps_calib if isinstance(gps_calib, dict) else {},
     }
     _write_json(SEEDS, payload)
+    _sync_active_bundle_data("seeds.json")
     return jsonify(ok=True)
 
 
@@ -1137,7 +1153,7 @@ def static_files(filename: str) -> Response:
     if filename == "index.html":
         return index()
     public_root_files = {"index.html", "app.js", "styles.css"}
-    public_data_files = {"photos.json", "floors.json", "meta.json", "cameras.json"}
+    public_data_files = {"photos.json", "floors.json", "meta.json", "cameras.json", "seeds.json"}
     parts = Path(filename).parts
     is_public_media = bool(parts) and parts[0] in {"ai", "thumbs", "originals", "converted", "plan"}
     is_public_data = len(parts) == 2 and parts[0] == "data" and parts[1] in public_data_files
