@@ -1,1 +1,8 @@
-{"mode":"share","backend":"web","project":"BPS.FotosBuilding","buildStamp":"20261111-101819"}
+{
+  "mode": "share",
+  "backend": "web",
+  "project": "BPS.FotosBuilding",
+  "buildStamp": "20261112-144856",
+  "photosRoot": "101_UH9.UH9",
+  "bundledProject": "101_UH9.UH9"
+}

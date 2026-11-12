@@ -2,6 +2,6 @@ __pycache__/
 *.py[cod]
 .venv/
 data/remote-photos.json
-converted/
+/converted/
 .DS_Store
 

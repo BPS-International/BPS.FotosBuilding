@@ -18,6 +18,7 @@ class ServerApiTests(unittest.TestCase):
             LOCAL_PHOTOS=data / "photos.json",
             SOURCE_CONFIG=data / "source.json",
             REMOTE_PHOTOS=data / "remote-photos.json",
+            PROJECTS_DIR=data / "projects",
             WRITE_TOKEN="",
         )
         self.paths.start()

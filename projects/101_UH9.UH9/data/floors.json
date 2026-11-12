@@ -1,0 +1,29 @@
+{
+  "activeFloorId": "UG",
+  "floors": [
+    {
+      "id": "UG",
+      "label": "UG",
+      "planFile": "UG_UG_101_BPS.UH9_ARC_UG.pdf",
+      "planRotation": 90
+    },
+    {
+      "id": "EG",
+      "label": "EG",
+      "planFile": "101_BPS.UH9_ARC_UG_Fd.pdf",
+      "planRotation": 90
+    },
+    {
+      "id": "1.OG",
+      "label": "1.OG",
+      "planFile": "101_BPS.UH9_ARC_UG.pdf",
+      "planRotation": 90
+    },
+    {
+      "id": "DG",
+      "label": "DG",
+      "planFile": null,
+      "planRotation": 0
+    }
+  ]
+}

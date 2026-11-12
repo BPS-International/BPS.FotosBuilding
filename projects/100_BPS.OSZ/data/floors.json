@@ -1,0 +1,29 @@
+{
+  "activeFloorId": "UG",
+  "floors": [
+    {
+      "id": "UG",
+      "label": "UG",
+      "planFile": "100_BPS.OSZ_ARC_UG_Fund.pdf",
+      "planRotation": 90
+    },
+    {
+      "id": "EG",
+      "label": "EG",
+      "planFile": null,
+      "planRotation": 0
+    },
+    {
+      "id": "1.OG",
+      "label": "1.OG",
+      "planFile": null,
+      "planRotation": 0
+    },
+    {
+      "id": "DG",
+      "label": "DG",
+      "planFile": null,
+      "planRotation": 0
+    }
+  ]
+}

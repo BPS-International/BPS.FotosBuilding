@@ -29,6 +29,7 @@ REMOTE_PHOTOS = DATA / "remote-photos.json"
 PLAN_ROOT = ROOT / "plan"
 PHOTOS_SOURCE = DATA / "photos-source.json"
 PROJECTS = DATA / "projects.json"
+PROJECTS_DIR = ROOT / "projects"
 THUMBS = ROOT / "thumbs"
 AI_DIR = ROOT / "ai"
 CONVERTED = ROOT / "converted"
@@ -85,6 +86,118 @@ def _is_plan_date(value: str) -> bool:
     return bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", value or ""))
 
 
+def _active_project_file() -> Path:
+    return DATA / "active-project.json"
+
+
+def _bundled_projects() -> list[dict[str, str]]:
+    if not PROJECTS_DIR.is_dir():
+        return []
+    found: list[dict[str, str]] = []
+    for child in sorted(PROJECTS_DIR.iterdir(), key=lambda item: item.name.lower()):
+        if not child.is_dir():
+            continue
+        photos = child / "data" / "photos.json"
+        if not photos.is_file():
+            photos = child / "photos.json"
+        if not photos.is_file():
+            continue
+        found.append(
+            {
+                "id": child.name,
+                "label": child.name,
+                "photosRoot": child.name,
+            }
+        )
+    return found
+
+
+def _find_bundled(raw: str) -> dict[str, str] | None:
+    text = str(raw or "").strip().strip('"')
+    if not text:
+        return None
+    name = Path(text.replace("\\", "/")).name
+    for item in _bundled_projects():
+        if text == item["photosRoot"] or text == item["id"] or name == item["id"]:
+            return item
+    return None
+
+
+def _bundled_dir(project_id: str) -> Path | None:
+    safe = Path(str(project_id or "")).name
+    if not safe or safe in {".", ".."}:
+        return None
+    folder = PROJECTS_DIR / safe
+    if not folder.is_dir():
+        return None
+    photos = folder / "data" / "photos.json"
+    if not photos.is_file():
+        photos = folder / "photos.json"
+    return folder if photos.is_file() else None
+
+
+def _active_bundle_dir() -> Path | None:
+    payload = _read_json(_active_project_file(), {})
+    if isinstance(payload, dict):
+        folder = _bundled_dir(str(payload.get("id") or ""))
+        if folder is not None:
+            return folder
+    return None
+
+
+def _bundle_photos_file(folder: Path) -> Path:
+    nested = folder / "data" / "photos.json"
+    if nested.is_file():
+        return nested
+    return folder / "photos.json"
+
+
+def _activate_bundled(item: dict[str, str]) -> dict[str, Any]:
+    folder = _bundled_dir(item["id"])
+    if folder is None:
+        raise FileNotFoundError(f"Bundled project not found: {item['id']}")
+    photos_file = _bundle_photos_file(folder)
+    index = _read_json(photos_file, {})
+    if not isinstance(index, dict):
+        index = {}
+    LOCAL_PHOTOS.parent.mkdir(parents=True, exist_ok=True)
+    LOCAL_PHOTOS.write_bytes(photos_file.read_bytes())
+    for name, dest in (("floors.json", FLOORS), ("seeds.json", SEEDS)):
+        src = folder / "data" / name
+        if src.is_file():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(src.read_bytes())
+    _write_json(_active_project_file(), {"id": item["id"], "updatedAt": _now()})
+    meta = _read_json(META, {})
+    if not isinstance(meta, dict):
+        meta = {}
+    meta["photosRoot"] = item["id"]
+    meta["buildStamp"] = index.get("buildStamp")
+    meta["bundledProject"] = item["id"]
+    _write_json(META, meta)
+    return {
+        "ok": True,
+        "photosRoot": item["photosRoot"],
+        "label": item["label"],
+        "count": index.get("count", len(index.get("photos") or [])),
+        "dates": index.get("dates", []),
+        "buildStamp": index.get("buildStamp"),
+        "projects": _discover_projects(None),
+    }
+
+
+def _ensure_bundled_active() -> None:
+    if _photos_root() is not None:
+        return
+    if _active_bundle_dir() is not None:
+        return
+    items = _bundled_projects()
+    if not items:
+        return
+    preferred = next((item for item in items if item["id"] == "101_UH9.UH9"), items[0])
+    _activate_bundled(preferred)
+
+
 def _photos_root() -> Path | None:
     env = os.environ.get("BPS_PHOTOS_ROOT", "").strip().strip('"')
     if env:
@@ -128,6 +241,12 @@ def _resolve_plan_file(floor_id: str, name: str) -> Path | None:
         if floor_safe:
             candidates.append(level / floor_safe / safe)
         candidates.append(level / safe)
+    bundle = _active_bundle_dir()
+    if bundle is not None:
+        plan = bundle / "plan"
+        if floor_safe:
+            candidates.append(plan / floor_safe / safe)
+        candidates.append(plan / safe)
     if floor_safe:
         candidates.append(PLAN_ROOT / floor_safe / safe)
     candidates.append(PLAN_ROOT / safe)
@@ -160,6 +279,12 @@ def _list_plan_files(floor_id: str) -> list[str]:
     names.update(_iter_pdf_names(level))
     if level is not None and floor_safe:
         names.update(_iter_pdf_names(level / floor_safe))
+    bundle = _active_bundle_dir()
+    if bundle is not None:
+        plan = bundle / "plan"
+        if floor_safe:
+            names.update(_iter_pdf_names(plan / floor_safe))
+        names.update(_iter_pdf_names(plan))
     if floor_safe:
         names.update(_iter_pdf_names(PLAN_ROOT / floor_safe))
     names.update(_iter_pdf_names(PLAN_ROOT))
@@ -298,7 +423,10 @@ def _discover_projects(active_root: Path | None) -> list[dict[str, str]]:
         if key in found:
             continue
         found[key] = _project_entry(photos)
-    return sorted(found.values(), key=lambda item: item["label"].lower())
+    live = sorted(found.values(), key=lambda item: item["label"].lower())
+    if live:
+        return live
+    return _bundled_projects()
 
 
 def _activate_photos_root(photos_root: Path) -> dict[str, Any]:
@@ -502,6 +630,7 @@ def _response_headers(response: Response) -> Response:
 
 @app.get("/")
 def index() -> Response:
+    _ensure_bundled_active()
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     attrs = 'data-backend="web"'
     if PUBLIC_VIEW:
@@ -514,13 +643,15 @@ def index() -> Response:
 @app.get("/api/health")
 def health() -> Response:
     root = _photos_root()
+    bundle = _active_bundle_dir()
     return jsonify(
         ok=True,
         app="BPS.FotosBuilding",
         backend="flask",
         time=_now(),
-        photosRoot=str(root) if root else None,
+        photosRoot=str(root) if root else (bundle.name if bundle else None),
         publicView=PUBLIC_VIEW,
+        projects=len(_discover_projects(root)),
     )
 
 
@@ -855,27 +986,42 @@ def refresh_source() -> Response | tuple[Response, int]:
 
 @app.get("/api/projects")
 def list_projects() -> Response:
+    _ensure_bundled_active()
     active = _photos_root()
     projects = _discover_projects(active)
+    bundle = _active_bundle_dir()
+    active_root = str(active) if active else (bundle.name if bundle else None)
+    label = _project_label(str(active)) if active else (bundle.name if bundle else None)
     return jsonify(
         ok=True,
         projects=projects,
-        activePhotosRoot=str(active) if active else None,
-        label=_project_label(str(active)) if active else None,
+        activePhotosRoot=active_root,
+        label=label,
     )
 
 
 @app.post("/api/project-select")
 def select_project() -> Response | tuple[Response, int]:
-    denied = _require_write_token()
-    if denied:
-        return denied
     document = request.get_json(silent=True)
     if not isinstance(document, dict):
         return jsonify(ok=False, error="Expected JSON object"), 400
     raw = str(document.get("photosRoot") or "").strip().strip('"')
     if not raw:
         return jsonify(ok=False, error="photosRoot required"), 400
+    bundled = _find_bundled(raw)
+    if bundled is not None:
+        if not PUBLIC_VIEW:
+            denied = _require_write_token()
+            if denied:
+                return denied
+        try:
+            payload = _activate_bundled(bundled)
+        except Exception as exc:  # noqa: BLE001
+            return jsonify(ok=False, error=str(exc)), 500
+        return jsonify(payload)
+    denied = _require_write_token()
+    if denied:
+        return denied
     photos_root = _resolve_photos_root(raw)
     if photos_root is None:
         return jsonify(ok=False, error=f"Photos folder not found: {raw}"), 404
@@ -971,6 +1117,9 @@ def serve_plan(floor_id: str, name: str) -> Response | tuple[Response, int]:
 def serve_original(name: str) -> Response | tuple[Response, int]:
     photos_root = _photos_root()
     found = _safe_file_in(photos_root, name) if photos_root is not None else None
+    bundle = _active_bundle_dir()
+    if found is None and bundle is not None:
+        found = _safe_file_in(bundle / "originals", name)
     if found is None:
         found = _safe_file_in(ROOT / "originals", name)
     if found is None:
@@ -994,6 +1143,14 @@ def static_files(filename: str) -> Response:
     is_public_data = len(parts) == 2 and parts[0] == "data" and parts[1] in public_data_files
     if filename not in public_root_files and not is_public_media and not is_public_data:
         return jsonify(ok=False, error="Not found"), 404
+    bundle = _active_bundle_dir()
+    if bundle is not None and (is_public_media or is_public_data):
+        bundled_file = bundle / filename
+        if bundled_file.is_file():
+            return send_from_directory(bundle, filename)
+        nested = bundle / "data" / Path(filename).name
+        if is_public_data and nested.is_file():
+            return send_file(nested)
     return send_from_directory(ROOT, filename)
 
 
