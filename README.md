@@ -103,8 +103,7 @@ Flask блокирует localhost, приватные IP-адреса, URL со
 
 Каталог `UH9WEB` выкладывается как Python Web Service **BPS.FotosBuilding**
 (репозиторий `https://github.com/BPS-International/BPS.FotosBuilding`).
-Публичный URL: `https://shapespark-multiplayer.onrender.com` (поддомен Render
-задаётся при создании сервиса и не меняется при переименовании).
+Публичный URL: `https://bps-fotosbuilding.onrender.com`.
 
 1. Подключите этот каталог как Git-репозиторий сервиса (Blueprint `render.yaml` или
    Root Directory = корень `UH9WEB`).
